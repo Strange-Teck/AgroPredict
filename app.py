@@ -40,10 +40,21 @@ LOCAL_NAMES = {
 
 # --- 3. THE ENGINE ---
 def analyze_leaf_with_cloud_ai(image_file):
-    api_key = os.environ.get('PLANT_ID_API_KEY')
-    if not api_key: return "Error: API Key Missing"
+    # --- 1. LOCALISATION MAP (Unit 3.4.8) ---
+    LOCAL_NAMES = {
+        "Phytophthora": "Black Pod Rot (Cocoa)",
+        "Mycosphaerella": "Black Sigatoka (Plantain)",
+        "Puccinia": "Maize Rust (Corn)",
+        "Cercospora": "Leaf Spot",
+        "Xanthomonas": "Bacterial Blight"
+    }
+
+    # --- 2. NONSENSE FILTER (Engineering Quality Gate) ---
+    # These results are "trash" for farmers. We will map them to 'Healthy'.
+    TRASH_RESULTS = ["mechanical damage", "environmental", "herbicide", "sunburn", "abiotic"]
 
     try:
+        api_key = os.environ.get('PLANT_ID_API_KEY')
         image_bytes = image_file.read()
         image_base64 = base64.b64encode(image_bytes).decode('ascii')
         
@@ -53,20 +64,44 @@ def analyze_leaf_with_cloud_ai(image_file):
         response = requests.post("https://plant.id/api/v3/health_assessment", json=payload, headers=headers)
         data = response.json()
 
-        if data.get('result') and data['result']['disease']:
-            sci_name = data['result']['disease']['suggestions'][0]['name']
-            
-            # --- ABSTRACTION LAYER: Localisation ---
-            final_name = sci_name
+        # --- STEP 1: IS IT A PLANT? (Defensive Guard) ---
+        if not data.get('result') or not data['result']['is_plant']['binary']:
+            return "System Status: Object not recognized as a crop leaf."
+
+        # --- STEP 2: CHECK HEALTH FIRST (Abstraction) ---
+        # If the health probability is high, we ignore ALL disease suggestions.
+        is_healthy_binary = data['result']['is_healthy']['binary']
+        health_score = data['result']['is_healthy']['probability']
+
+        if is_healthy_binary or health_score > 0.5:
+            return "Diagnosis: Healthy Crop (No disease detected)"
+
+        # --- STEP 3: SMART DISEASE FILTERING ---
+        if data['result']['disease'] and data['result']['disease']['suggestions']:
+            suggestion = data['result']['disease']['suggestions'][0]
+            sci_name = suggestion['name'].lower()
+            prob = suggestion['probability']
+
+            # A: If the AI is not sure (< 25%), don't guess.
+            if prob < 0.25:
+                return "Diagnosis: Healthy (Minor natural variations detected)"
+
+            # B: If the AI suggests "Mechanical Damage" or "Sunburn", tell the farmer it's Healthy.
+            if any(trash in sci_name for trash in TRASH_RESULTS):
+                return "Diagnosis: Healthy (Physical wear, no biological disease)"
+
+            # C: Real Disease Matching
             for key, val in LOCAL_NAMES.items():
-                if key.lower() in sci_name.lower():
-                    final_name = val
-                    break
-            return f"Diagnosis: {final_name}"
+                if key.lower() in sci_name:
+                    return f"Diagnosis: {val}"
+
+            # D: Fallback for unmapped but high-confidence diseases
+            return f"Diagnosis: Potential {sci_name.title()} detected."
         
         return "Diagnosis: Healthy Crop"
-    except:
-        return "Cloud Error: Connection Lost"
+
+    except Exception as e:
+        return "System Error: Connection to Cloud AI timed out."
 
 # --- 4. DATA HELPER ---
 def get_site_context():
