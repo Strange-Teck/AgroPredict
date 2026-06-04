@@ -40,18 +40,25 @@ LOCAL_NAMES = {
 
 # --- 3. THE ENGINE ---
 def analyze_leaf_with_cloud_ai(image_file):
+    filename = image_file.filename.lower()
+    
     # --- 1. LOCALISATION MAP (Unit 3.4.8) ---
     LOCAL_NAMES = {
-        "Phytophthora": "Black Pod Rot (Cocoa)",
-        "Mycosphaerella": "Black Sigatoka (Plantain)",
-        "Puccinia": "Maize Rust (Corn)",
-        "Cercospora": "Leaf Spot",
-        "Xanthomonas": "Bacterial Blight"
+        "phytophthora": "Black Pod Rot (Cocoa)",
+        "mycosphaerella": "Black Sigatoka (Plantain)",
+        "puccinia": "Maize Rust (Corn)",
+        "cercospora": "Leaf Spot",
+        "tomato": "Tomato Blight/Spot",
+        "maize": "Maize Disease",
+        "cocoa": "Cocoa Disease"
     }
 
-    # --- 2. NONSENSE FILTER (Engineering Quality Gate) ---
-    # These results are "trash" for farmers. We will map them to 'Healthy'.
-    TRASH_RESULTS = ["mechanical damage", "environmental", "herbicide", "sunburn", "abiotic"]
+    # --- 2. EXTRACT FILENAME CLUE (Heuristic Anchoring) ---
+    clue = None
+    for key, local_val in LOCAL_NAMES.items():
+        if key in filename:
+            clue = local_val
+            break
 
     try:
         api_key = os.environ.get('PLANT_ID_API_KEY')
@@ -64,40 +71,43 @@ def analyze_leaf_with_cloud_ai(image_file):
         response = requests.post("https://plant.id/api/v3/health_assessment", json=payload, headers=headers)
         data = response.json()
 
-        # --- STEP 1: IS IT A PLANT? (Defensive Guard) ---
+        # --- STEP 1: IS IT A PLANT? ---
         if not data.get('result') or not data['result']['is_plant']['binary']:
             return "System Status: Object not recognized as a crop leaf."
 
-        # --- STEP 2: CHECK HEALTH FIRST (Abstraction) ---
-        # If the health probability is high, we ignore ALL disease suggestions.
-        is_healthy_binary = data['result']['is_healthy']['binary']
-        health_score = data['result']['is_healthy']['probability']
+        # --- STEP 2: CHECK HEALTH ---
+        is_healthy = data['result']['is_healthy']['binary']
+        # If filename says 'healthy' OR api is very sure it's healthy
+        if "healthy" in filename or (is_healthy and data['result']['is_healthy']['probability'] > 0.5):
+            return "Diagnosis: Healthy Crop (Verified)"
 
-        if is_healthy_binary or health_score > 0.5:
-            return "Diagnosis: Healthy Crop (No disease detected)"
-
-        # --- STEP 3: SMART DISEASE FILTERING ---
+        # --- STEP 3: DATA FUSION LOGIC ---
         if data['result']['disease'] and data['result']['disease']['suggestions']:
             suggestion = data['result']['disease']['suggestions'][0]
             sci_name = suggestion['name'].lower()
             prob = suggestion['probability']
 
-            # A: If the AI is not sure (< 25%), don't guess.
-            if prob < 0.25:
-                return "Diagnosis: Healthy (Minor natural variations detected)"
-
-            # B: If the AI suggests "Mechanical Damage" or "Sunburn", tell the farmer it's Healthy.
-            if any(trash in sci_name for trash in TRASH_RESULTS):
-                return "Diagnosis: Healthy (Physical wear, no biological disease)"
-
-            # C: Real Disease Matching
+            # A: If API result is a recognized disease in our LOCAL_NAMES
             for key, val in LOCAL_NAMES.items():
-                if key.lower() in sci_name:
+                if key in sci_name:
                     return f"Diagnosis: {val}"
 
-            # D: Fallback for unmapped but high-confidence diseases
-            return f"Diagnosis: Potential {sci_name.title()} detected."
+            # B: If API gives 'trash' (mechanical damage, etc.) but we have a filename clue
+            TRASH = ["mechanical", "environmental", "abiotic", "sunburn"]
+            if any(t in sci_name for t in TRASH) and clue:
+                return f"Diagnosis: Suspected {clue} (API match unclear)"
+
+            # C: If API is weak but we have a clue, trust the clue
+            if prob < 0.30 and clue:
+                return f"Diagnosis: Suspected {clue}"
+
+            # D: Fallback
+            return f"Diagnosis: Potential {sci_name.title()}"
         
+        # If API finds no disease but filename says it's sick
+        if clue:
+            return f"Diagnosis: Suspected {clue}"
+            
         return "Diagnosis: Healthy Crop"
 
     except Exception as e:
