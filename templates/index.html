@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroPredict | {{ matricule }}</title>
+    <!-- Modern Bootstrap & Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-green: #1b4332; --accent-green: #2d6a4f; --light-bg: #f8f9fa; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--light-bg); color: #333; }
+        
+        /* Navbar & Footer */
+        .navbar { background-color: var(--primary-green) !important; border-bottom: 4px solid var(--accent-green); }
+        footer { background-color: #111; color: #aaa; padding: 40px 0; border-top: 5px solid var(--accent-green); }
+
+        /* Hero Styling */
+        .hero { background: linear-gradient(rgba(27, 67, 50, 0.85), rgba(27, 67, 50, 0.85)), url('https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=2070'); background-size: cover; background-position: center; color: white; padding: 100px 0; }
+        
+        /* Action Cards */
+        .action-card { border: none; border-radius: 15px; transition: transform 0.3s ease; background: white; }
+        .action-card:hover { transform: translateY(-10px); }
+        .btn-success { background-color: var(--accent-green); border: none; }
+        .btn-success:hover { background-color: var(--primary-green); }
+
+        /* Process Numbers */
+        .process-badge { background: var(--accent-green); color: white; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; }
+        
+        /* Complexity Dash */
+        .math-box { background: #fff; border-left: 5px solid var(--accent-green); border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .node { fill: #fff; stroke: var(--accent-green); stroke-width: 2px; }
+        .edge { stroke: #ced4da; stroke-width: 2px; fill: none; }
+    </style>
+</head>
+<body>
+
+    <!-- STICKY NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <span class="fs-3 me-2">🌱</span> AGRO-PREDICT
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto fw-semibold">
+                    <li class="nav-item"><a class="nav-link" href="#diagnostics">Diagnostics</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#processes">Processes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#engineering">Engineering Audit</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#records">History</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero text-center shadow">
+        <div class="container">
+            <span class="badge bg-warning text-dark mb-3 px-3 py-2 fw-bold">E-Type Evolutionary System</span>
+            <h1 class="display-4 fw-bold">Data-Driven Agriculture for Buea</h1>
+            <p class="lead opacity-75">Cloud-Based AI for Disease Detection & Yield Forecasting in Muea, Tole, and Bomaka.</p>
+            <div class="mt-4">
+                <a href="#diagnostics" class="btn btn-warning btn-lg px-4 fw-bold">Start AI Scan</a>
+            </div>
+        </div>
+    </section>
+
+    <main class="container my-5">
+
+        <!-- 1. FEEDBACK ALERTS -->
+        {% if prediction or error %}
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-8">
+                <div class="alert {% if error %}alert-danger{% else %}alert-success{% endif %} border-0 shadow-lg p-4 d-flex align-items-center">
+                    <div class="display-6 me-4">{% if error %}⚠️{% else %}✅{% endif %}</div>
+                    <div>
+                        <h4 class="alert-heading fw-bold">System Result</h4>
+                        <p class="mb-0 fs-5">{{ prediction or error }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 2. DIAGNOSTICS & YIELD (Process 3.4) -->
+        <div id="diagnostics" class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="card action-card shadow-sm h-100 p-4">
+                    <div class="card-body">
+                        <h3 class="fw-bold text-success mb-3">AI Image Analysis</h3>
+                        <p class="text-muted small">Upload a leaf photo (Cocoa, Maize, Plantain) for real-time Cloud AI diagnosis.</p>
+                        <form action="/analyze" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="action_type" value="disease">
+                            <div class="mb-3">
+                                <input type="file" name="file" class="form-control border-success">
+                            </div>
+                            <button class="btn btn-success w-100 py-2 fw-bold">Run Diagnosis</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card action-card shadow-sm h-100 p-4">
+                    <div class="card-body">
+                        <h3 class="fw-bold text-primary mb-3">Yield Forecaster</h3>
+                        <p class="text-muted small">Enter environmental data to mine patterns for total harvest prediction.</p>
+                        <form action="/analyze" method="post">
+                            <input type="hidden" name="action_type" value="yield">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text bg-white border-primary text-primary fw-bold">Rainfall (mm)</span>
+                                <input type="number" name="rainfall" class="form-control border-primary" placeholder="e.g. 500">
+                            </div>
+                            <button class="btn btn-primary w-100 py-2 fw-bold">Forecast Yield</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-5 opacity-25">
+
+        <!-- 3. ENGINEERING COMPLIANCE (Processes 3.1 - 3.5) -->
+        <div id="processes" class="mb-5">
+            <h2 class="fw-bold text-center mb-5">Software Construction Process</h2>
+            <div class="row g-4">
+                {% for p in processes %}
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="process-badge mb-3">P {{ p.id }}</div>
+                            <h5 class="fw-bold">{{ p.title }}</h5>
+                            <p class="text-muted small">{{ p.detail }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 4. TECHNICAL AUDIT (McCabe Math) -->
+        <div id="engineering" class="row g-4 align-items-center mb-5">
+            <div class="col-lg-6">
+                <div class="math-box">
+                    <h4 class="fw-bold mb-4">Process 3.2: Complexity Analysis</h4>
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <span>Linguistic Notation:</span> <span class="fw-bold">Python 3.11</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <span>McCabe's Formula:</span> <code>V(G) = E - N + 2</code>
+                    </div>
+                    <div class="d-flex justify-content-between text-success">
+                        <span>Current Complexity:</span> <span class="fw-bold fs-4">3</span>
+                    </div>
+                    <div class="alert alert-info mt-3 py-2 small">
+                        Quality verified: Score < 10 ensures long-term system maintainability.
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <h6 class="text-muted mb-3">Control Flow Graph (Diagnostic Module)</h6>
+                <svg width="250" height="300" class="bg-white rounded p-3 shadow-sm">
+                    <path d="M125 30 L125 60 M125 90 L80 140 M125 90 L170 140 M80 170 L50 220 M80 170 L110 220" class="edge"/>
+                    <circle cx="125" cy="20" r="10" class="node"/><circle cx="125" cy="80" r="10" class="node"/>
+                    <circle cx="80" cy="160" r="10" class="node"/><circle cx="50" cy="240" r="10" class="node"/>
+                    <circle cx="110" cy="240" r="10" class="node"/><circle cx="170" cy="240" r="10" class="node"/>
+                    <circle cx="125" cy="285" r="10" class="node"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- 5. DATABASE HISTORY (Process 3.1) -->
+        <div id="records" class="card border-0 shadow-sm overflow-hidden mb-5">
+            <div class="card-header bg-dark text-white fw-bold py-3">
+                📂 Database Management Module: Crop Scan Registry
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="small text-uppercase">
+                            <th>Timestamp</th>
+                            <th>Image Filename</th>
+                            <th>AI Diagnosis Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scan in recent_scans %}
+                        <tr>
+                            <td class="small text-muted">{{ scan.date.strftime('%d %b %Y, %H:%M') }}</td>
+                            <td><code>{{ scan.filename }}</code></td>
+                            <td><span class="badge bg-success bg-opacity-10 text-success border border-success">{{ scan.result }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container text-center">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-white fw-bold">AgroPredict</h5>
+                    <p class="small">A professional engineering project for crop health verification in Cameroon.</p>
+                </div>
+                <div class="col-md-4 mb-4 border-start border-end border-secondary">
+                    <h5 class="text-white fw-bold">Academic Detail</h5>
+                    <p class="small mb-1">University of Buea - College of Technology</p>
+                    <p class="small">Department of Computer Engineering</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-white fw-bold">Developer</h5>
+                    <p class="small mb-1">{{ name }}</p>
+                    <p class="small">{{ matricule }}</p>
+                </div>
+            </div>
+            <hr class="opacity-25 border-light">
+            <p class="mt-4 mb-0 extra-small">Project ID: CEC418-2026 | Built with Flask, Docker, and Cloud AI</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
